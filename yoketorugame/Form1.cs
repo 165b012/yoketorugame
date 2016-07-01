@@ -15,6 +15,7 @@ namespace yoketorugame
         enum SCENES
         {
             SC_NONE,    //無効
+            SC_BOOT,    //起動
             SC_TITLE,   //タイトル
             SC_GAME,    //ゲーム中
             SC_GAMEOVER,//ゲームオーバー
@@ -22,8 +23,37 @@ namespace yoketorugame
         };
         /**現在のシーン*/
         SCENES nowScene = SCENES.SC_NONE;
-        /**現在のシーン*/
-        SCENES nextScene = SCENES.SC_TITLE;
+        /**次のシーン*/
+        SCENES nextScene = SCENES.SC_BOOT;
+
+        /**敵の上限数*/
+        const int ENEMY_MAX = 10;
+        /**アイテムの上限数*/
+        const int ITEM_MAX = 10;
+        /**キャラクターの上限数*/
+        const int CHR_MAX = 1 + ENEMY_MAX + ITEM_MAX;
+
+        /**キャラクタータイプ*/
+        enum CHRTYPE
+        {
+            CHRTYPE_NONE,
+            CHRTYPE_PLAYER,
+            CHRTYPE_ENEMY,
+            CHRTYPE_ITME
+        }
+
+        /**キャラクタータイプ*/
+        CHRTYPE[] type = new CHRTYPE[CHR_MAX];
+        /** X座標*/
+        float[] px = new float[CHR_MAX];
+        /** Y座標*/
+        float[] py = new float[CHR_MAX];
+        /**X速度*/
+        float[] vx = new float[CHR_MAX];
+        /**Y速度*/
+        float[] vy = new float[CHR_MAX];
+        /**ラベル*/
+        Label[] labels = new Label[CHR_MAX];
 
         public Form1()
         {
@@ -44,6 +74,35 @@ namespace yoketorugame
             //シーンが切り替わる
             nowScene = nextScene;
             nextScene = SCENES.SC_NONE;
+
+            switch (nowScene)
+            {
+                //起動
+                case SCENES.SC_BOOT:
+                    for(int i=0; i<CHR_MAX;i++)
+                    {
+                        type[i] = CHRTYPE.CHRTYPE_NONE;
+                        labels[i] = new Label();
+                        labels[i].Visible = false;
+                        labels[i].AutoSize = true;
+                        Controls.Add(labels[i]);
+                    }
+                    nextScene = SCENES.SC_TITLE;
+                    break;
+
+                // ゲーム開始時の初期化
+                case SCENES.SC_GAME:
+                    type[0] = CHRTYPE.CHRTYPE_PLAYER;
+                    vx[0] = 0;
+                    vy[0] = 0;
+                    labels[0].Text = "(・ｗ・)";
+                    labels[0].Visible = true;
+                    px[0] = (ClientSize.Width - labels[0].Width) / 2;
+                    py[0] = (ClientSize.Height - labels[0].Height) / 2;
+                    labels[0].Left = (int)px[0];
+                    labels[0].Top = (int)py[0];
+                    break;
+            }
         }
 
         /**更新処理*/
@@ -58,19 +117,21 @@ namespace yoketorugame
                     }
                     break;
                 case SCENES.SC_GAME:
-                    if ((Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
-                    {
-                        //左クリックされた
-                        nextScene = SCENES.SC_GAMEOVER;
-                    }
-                    if ((Control.MouseButtons & MouseButtons.Right) == MouseButtons.Right)
-                    {
-                        //右クリックされた
-                        nextScene = SCENES.SC_CLEAR;
-                    }
+                    updateGame();
                     break;
-                case SCENES.SC_CLEAR:
-                case SCENES.SC_GAMEOVER:
+                /*  if ((Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
+                  {
+                      //左クリックされた
+                      nextScene = SCENES.SC_GAMEOVER;
+                  }
+                  if ((Control.MouseButtons & MouseButtons.Right) == MouseButtons.Right)
+                  {
+                      //右クリックされた
+                      nextScene = SCENES.SC_CLEAR;
+                  }
+                  break;*/
+                 case SCENES.SC_CLEAR:
+                 case SCENES.SC_GAMEOVER:
                     if ((Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
                     {
                         //左クリックされた
@@ -80,7 +141,27 @@ namespace yoketorugame
             }
 
         }
+        //ゲームの更新処理
+        private void updateGame()
+        {
+            for (int i = 0; i < CHR_MAX; i++)
+            {
+                switch (type[i])
+                {
+                    case CHRTYPE.CHRTYPE_PLAYER:
+                        updatePlayer(1);
+                        break;
+                }
+            }
+        }
+        //プレイヤーの更新処理
+        private void updatePlayer(int i)
+        {
+            Point cpos = PointToClient(MousePosition);
+            px[0] = cpos.X-labels[0].Width / 2;
+            py[0] = cpos.Y-labels[0].Height / 2;
 
+        }
         /**描画*/
         private void render()
         {
@@ -91,6 +172,19 @@ namespace yoketorugame
                     break;
                 case SCENES.SC_GAME:
                     Text = "GAME";
+                    for (int i = 0; i < CHR_MAX; i++)
+                    {
+                        if(type[i] != CHRTYPE.CHRTYPE_NONE)
+                        {
+                            labels[i].Visible = true;
+                            labels[i].Left = (int)px[i];
+                            labels[i].Top = (int)py[i];
+                        }
+                        else
+                        {
+                            labels[i].Visible = false;
+                        }
+                    }
                     break;
                 case SCENES.SC_GAMEOVER:
                     Text = "GAMEOVER";
