@@ -12,7 +12,16 @@ namespace yoketorugame
 {
     public partial class Form1 : Form
     {
+        static Random rnd = new Random();
+        //敵の最大速度
+        const float ENEMY_SPEED = 10f;
+        //アイテムの最大速度
+        const float ITEM_SPEED = 10f;
+        //アイテム残り数
+        int ItemCount = 0;
+
         enum SCENES
+
         {
             SC_NONE,    //無効
             SC_BOOT,    //起動
@@ -27,7 +36,7 @@ namespace yoketorugame
         SCENES nextScene = SCENES.SC_BOOT;
 
         /**敵の上限数*/
-        const int ENEMY_MAX = 10;
+        const int ENEMY_MAX = 50;
         /**アイテムの上限数*/
         const int ITEM_MAX = 10;
         /**キャラクターの上限数*/
@@ -39,7 +48,7 @@ namespace yoketorugame
             CHRTYPE_NONE,
             CHRTYPE_PLAYER,
             CHRTYPE_ENEMY,
-            CHRTYPE_ITME
+            CHRTYPE_ITEM
         }
 
         /**キャラクタータイプ*/
@@ -101,6 +110,30 @@ namespace yoketorugame
                     py[0] = (ClientSize.Height - labels[0].Height) / 2;
                     labels[0].Left = (int)px[0];
                     labels[0].Top = (int)py[0];
+
+                    //敵の初期化
+                    for(int i=1; i<1+ENEMY_MAX; i++)
+                    {
+                        type[i] = CHRTYPE.CHRTYPE_ENEMY;
+                        vx[i] = (float)(rnd.NextDouble() * (2 * ENEMY_SPEED) - ENEMY_SPEED);
+                        vy[i] = (float)(rnd.NextDouble() * (2 * ENEMY_SPEED) - ENEMY_SPEED);
+                        labels[i].Text = "○";
+                        px[i] = rnd.Next(ClientSize.Width - labels[i].Width);
+                        py[i] = rnd.Next(ClientSize.Height - labels[i].Height);
+                    }
+                    //アイテムの初期化
+                    for (int i = 1 + ENEMY_MAX; i < CHR_MAX; i++)
+                    {
+                        type[i] = CHRTYPE.CHRTYPE_ITEM;
+                        vx[i] = (float)(rnd.NextDouble() * (2 * ITEM_SPEED) - ITEM_SPEED);
+                        vy[i] = (float)(rnd.NextDouble() * (2 * ITEM_SPEED) - ITEM_SPEED);
+                        labels[i].Text = "☆";
+                        px[i] = rnd.Next(ClientSize.Width - labels[i].Width);
+                        py[i] = rnd.Next(ClientSize.Height - labels[i].Height);
+                    }
+                    //アイテムの残り数を設定
+                    ItemCount = ITEM_MAX;
+
                     break;
             }
         }
@@ -119,7 +152,7 @@ namespace yoketorugame
                 case SCENES.SC_GAME:
                     updateGame();
                     break;
-                /*  if ((Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
+                 /*if ((Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
                   {
                       //左クリックされた
                       nextScene = SCENES.SC_GAMEOVER;
@@ -149,11 +182,87 @@ namespace yoketorugame
                 switch (type[i])
                 {
                     case CHRTYPE.CHRTYPE_PLAYER:
-                        updatePlayer(1);
+                        updatePlayer(i);
+                        break;
+                    case CHRTYPE.CHRTYPE_ENEMY:
+                        updateEnemy(i);
+                        break;
+                    case CHRTYPE.CHRTYPE_ITEM:
+                        updateItem(i);
                         break;
                 }
             }
         }
+        //敵の更新処理
+        private void updateEnemy(int i)
+        {
+            constantMove(i);
+            if(hitPlayer(i) == true)
+            {
+                nextScene = SCENES.SC_GAMEOVER;
+            }
+
+        }
+
+        //アイテムの更新処理
+        private void updateItem(int i)
+        {
+            constantMove(i);
+            if (hitPlayer(i) == true)
+            {
+                //アイテムを消す
+                type[i] = CHRTYPE.CHRTYPE_NONE;
+                //クリアチェック
+                ItemCount--;
+                if(ItemCount <= 0)
+                {
+                    nextScene = SCENES.SC_CLEAR;
+                }
+            }
+        }
+
+        /*
+         * プレイヤーとぶつかっているか？
+         * @return nool true=ぶつかっている/ false=ぶつかっていない
+         * */
+        private bool hitPlayer(int i)
+        {
+            if ((px[0] < labels[i].Right)
+                && (labels[0].Right > px[i]) 
+                && (py[0] < labels[i].Bottom)
+                && (labels[0].Bottom > py[i] ))
+            {
+                return true;
+            }
+            else
+                return false;
+        }
+
+        //等速直線運動でキャラを動かす
+        private void constantMove(int i)
+        {
+            px[i] += vx[i];
+            py[i] += vy[i];
+
+            if(px[i] < 0)
+            {
+                vx[i] = Math.Abs(vx[i]);
+            }
+            else if(px[i] > ClientSize.Width - labels[i].Width)
+            {
+                vx[i] = -Math.Abs(vx[i]);
+            }
+            else if (py[i] < 0)
+            {
+                vy[i] = Math.Abs(vy[1]);
+            }
+            else if (py[i] > ClientSize.Height - labels[i].Height)
+            {
+                vy[i] = -Math.Abs(vy[i]);
+            }
+
+        }
+
         //プレイヤーの更新処理
         private void updatePlayer(int i)
         {
